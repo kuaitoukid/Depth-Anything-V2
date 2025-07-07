@@ -114,7 +114,7 @@ class DPTHead(nn.Module):
             nn.Identity(),
         )
     
-    def forward(self, out_features, patch_h, patch_w):
+    def forward(self, out_features, patch_h, patch_w, return_feature=False):
         out = []
         for i, x in enumerate(out_features):
             if self.use_clstoken:
@@ -144,6 +144,8 @@ class DPTHead(nn.Module):
         path_1 = self.scratch.refinenet1(path_2, layer_1_rn)
         
         out = self.scratch.output_conv1(path_1)
+        if return_feature:
+            return out
         out = F.interpolate(out, (int(patch_h * 14), int(patch_w * 14)), mode="bilinear", align_corners=True)
         out = self.scratch.output_conv2(out)
         
@@ -172,14 +174,16 @@ class DepthAnythingV2(nn.Module):
         self.pretrained = DINOv2(model_name=encoder)
         
         self.depth_head = DPTHead(self.pretrained.embed_dim, features, use_bn, out_channels=out_channels, use_clstoken=use_clstoken)
-    
-    def forward(self, x):
+
+    def forward(self, x, return_feature=False):
         patch_h, patch_w = x.shape[-2] // 14, x.shape[-1] // 14
         
         features = self.pretrained.get_intermediate_layers(x, self.intermediate_layer_idx[self.encoder], return_class_token=True)
         
-        depth = self.depth_head(features, patch_h, patch_w)
-        depth = F.relu(depth)
+        out = self.depth_head(features, patch_h, patch_w, return_feature=return_feature)
+        if return_feature:
+            return out
+        depth = F.relu(out)
         
         return depth.squeeze(1)
     
