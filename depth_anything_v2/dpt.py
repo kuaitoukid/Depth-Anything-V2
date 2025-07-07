@@ -132,20 +132,23 @@ class DPTHead(nn.Module):
             out.append(x)
         
         layer_1, layer_2, layer_3, layer_4 = out
-        
+
         layer_1_rn = self.scratch.layer1_rn(layer_1)
         layer_2_rn = self.scratch.layer2_rn(layer_2)
         layer_3_rn = self.scratch.layer3_rn(layer_3)
         layer_4_rn = self.scratch.layer4_rn(layer_4)
         
         path_4 = self.scratch.refinenet4(layer_4_rn, size=layer_3_rn.shape[2:])        
-        path_3 = self.scratch.refinenet3(path_4, layer_3_rn, size=layer_2_rn.shape[2:])
+        if return_feature:
+            path_3 = self.scratch.refinenet3(path_4, layer_3_rn, size=layer_3_rn.shape[2:])
+            return path_3
+        else:
+            path_3 = self.scratch.refinenet3(path_4, layer_3_rn, size=layer_2_rn.shape[2:])
+
         path_2 = self.scratch.refinenet2(path_3, layer_2_rn, size=layer_1_rn.shape[2:])
         path_1 = self.scratch.refinenet1(path_2, layer_1_rn)
         
         out = self.scratch.output_conv1(path_1)
-        if return_feature:
-            return out
         out = F.interpolate(out, (int(patch_h * 14), int(patch_w * 14)), mode="bilinear", align_corners=True)
         out = self.scratch.output_conv2(out)
         
