@@ -139,13 +139,12 @@ class DPTHead(nn.Module):
         layer_4_rn = self.scratch.layer4_rn(layer_4)
         
         path_4 = self.scratch.refinenet4(layer_4_rn, size=layer_3_rn.shape[2:])        
+        path_3 = self.scratch.refinenet3(path_4, layer_3_rn, size=layer_2_rn.shape[2:])
         if return_feature:
-            path_3 = self.scratch.refinenet3(path_4, layer_3_rn, size=layer_3_rn.shape[2:])
-            return path_3
+            path_2 = self.scratch.refinenet2(path_3, layer_2_rn, size=layer_2_rn.shape[2:])
+            return path_2
         else:
-            path_3 = self.scratch.refinenet3(path_4, layer_3_rn, size=layer_2_rn.shape[2:])
-
-        path_2 = self.scratch.refinenet2(path_3, layer_2_rn, size=layer_1_rn.shape[2:])
+            path_2 = self.scratch.refinenet2(path_3, layer_2_rn, size=layer_1_rn.shape[2:])
         path_1 = self.scratch.refinenet1(path_2, layer_1_rn)
         
         out = self.scratch.output_conv1(path_1)
